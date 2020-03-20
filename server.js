@@ -56,6 +56,13 @@ io.sockets.on("connection", function(socket) {
   socket.on("d", function(data) {
     data["sid"] = socket.id;
     //console.log(data["a"]);
+    for (var i in io.sockets.connected) {
+      var s = io.sockets.connected[i];
+      if (socket.id === s.id) {
+        //TODO lörs in here;
+      }
+      socket.emit("notify_user_state", s.notify_user_state_data);
+    }
     socket.broadcast.emit("d", data); //Send to all but the sender
     //io.emit("d", data); //Send to all clients (4 debugging)
   });
