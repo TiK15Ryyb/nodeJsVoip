@@ -8,8 +8,8 @@ An simple nodeJs Websocket VOIP application without the use of WebRTC and extra 
 
 1. Install npm and node
 2. Clone or download this repo and go to the "nodeJsVoip" folder
-3. install node deps -> run: `npm install`
-4. start the Server -> run: `node server.js`
+3. install node deps -> run: `yarn install`
+4. start the Server -> run: `yarn start`
 5. connect to https://myserverip (with 2 tabs or browsers to hear yourself)
 
 ## Supported (tested) browsers
