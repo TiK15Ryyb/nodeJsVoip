@@ -4,12 +4,11 @@ $(document).ready(function() {
     startTalking();
   });
 
-  $("#leftBtn").click(function() {
-    setLocation(-1)
+  $('#posX').on('change keyup', function() {
+    setLocationX(this.value);
   });
-
-  $("#rightBtn").click(function() {
-    setLocation(1)
+  $('#posY').on('change keyup', function() {
+    setLocationY(this.value);
   });
 
   var micaudio = document.getElementById("micaudio");

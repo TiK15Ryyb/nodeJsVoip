@@ -12,10 +12,11 @@ var upSampleWorker = new Worker("./js/voipWorker.js");
 
 var socketConnected = false; //is true if client is connected
 var steamBuffer = {}; //Buffers incomeing audio
-var steamPosX = {}
+var steamPos = {};
 
 var oscillator;
-var X_LOCATION = 0;
+var X_LOCATION = 5;
+var Y_LOCATION = 5;
 
 function hasGetUserMedia() {
   return !!(
@@ -47,7 +48,8 @@ socketIO.on("connect", function(socket) {
         inSampleRate: data["s"],
         inBitRate: data["b"],
         p: data["p"],
-        x: data["x"]
+        x: data["x"],
+        y: data["y"]
       });
     }
   });
@@ -77,7 +79,8 @@ downSampleWorker.addEventListener(
         s: mySampleRate,
         b: myBitRate,
         p: data[1],
-        x: X_LOCATION
+        x: X_LOCATION,
+        y: Y_LOCATION
       });
     }
   },
@@ -95,18 +98,22 @@ upSampleWorker.addEventListener(
       soundcardSampleRate
     );
     if (typeof steamBuffer[clientId] === "undefined") {
-      steamPosX[clientId] = [];
+      steamPos[clientId] = [];
       steamBuffer[clientId] = [];
     }
     if (steamBuffer[clientId].length > 5) steamBuffer[clientId].splice(0, 1); //If to much audio is inc for some reason... remove
-    steamPosX[clientId] = data[2];
+    steamPos[clientId] = [data[2], data[3]];
     steamBuffer[clientId].push(voiceData);
   },
   false
 );
 
-function setLocation(x) {
-    X_LOCATION = x;
+function setLocationX(x) {
+  X_LOCATION = x;
+}
+
+function setLocationY(x) {
+  Y_LOCATION = x;
 }
 
 function startTalking() {
@@ -170,14 +177,24 @@ function startTalking() {
             for (var c in steamBuffer) {
               if (steamBuffer[c].length != 0) {
                 for (var i in steamBuffer[c][0]) {
+                  var volumeMultiplier = 1.0;
+                  var xDistancce = X_LOCATION - steamPos[c][0];
+                  if (Math.abs(xDistancce) <= 1) {
+                    volumeMultiplier = 1.0;
+                  } else {
+                    volumeMultiplier = 0.1 * (1 / Math.max(1, Math.abs(xDistancce)));
+                  }
+                  var left = xDistancce >= 0;
+                  var right = xDistancce <= 0;
                   if (div) {
-                    outDataL[i] = (steamPosX[c] <= 0 ? 1 : 0) * (outDataL[i] + steamBuffer[c][0][i]) / 2;
-                    outDataR[i] = (steamPosX[c] >= 0 ? 1 : 0) * (outDataR[i] + steamBuffer[c][0][i]) / 2;
+
+                    outDataL[i] = (left ? 1 : 0.4) * volumeMultiplier * (outDataL[i] + steamBuffer[c][0][i]) / 2;
+                    outDataR[i] = (right ? 1 : 0.4) * volumeMultiplier * (outDataR[i] + steamBuffer[c][0][i]) / 2;
                   }
                   //need to muxing audio
                   else {
-                    outDataL[i] = (steamPosX[c] <= 0 ? 1 : 0) * steamBuffer[c][0][i];
-                    outDataR[i] = ( steamPosX[c] >= 0 ? 1 : 0 ) * steamBuffer[c][0][i];
+                    outDataL[i] = (left ? 1 : 0.4) * volumeMultiplier * steamBuffer[c][0][i];
+                    outDataR[i] = (right ? 1 : 0.4) * volumeMultiplier * steamBuffer[c][0][i];
                   }
                 }
                 steamBuffer[c].splice(0, 1); //remove the audio after putting it in buffer

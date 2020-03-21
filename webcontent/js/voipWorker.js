@@ -17,6 +17,7 @@ self.addEventListener(
     var clientId = data.socketId;
     var p = data.p;
     var x = data.x;
+    var y = data.y;
 
     if (inc) {
       //Data are from an other client
@@ -50,7 +51,7 @@ self.addEventListener(
               resapledData = mapUint16ToFloat32Array(resapledData);
             }
             var lowDat = lowSignal(resapledData, p);
-            self.postMessage([clientId, lowDat, x]); //Send data back....
+            self.postMessage([clientId, lowDat, x, y]); //Send data back....
           }
         );
       } else {
@@ -78,7 +79,7 @@ self.addEventListener(
               bitratedData = mapFloat32ToUInt16Array(resapledData);
             }
 
-            self.postMessage([bitratedData, p, x]); //Send it back....
+            self.postMessage([bitratedData, p, x, y]); //Send it back....
           }
         }
       );
