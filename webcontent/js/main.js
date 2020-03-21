@@ -4,6 +4,14 @@ $(document).ready(function() {
     startTalking();
   });
 
+  $("#leftBtn").click(function() {
+    setLocation(-1)
+  });
+
+  $("#rightBtn").click(function() {
+    setLocation(1)
+  });
+
   var micaudio = document.getElementById("micaudio");
   var micctx = micaudio.getContext("2d");
   micctx.fillStyle = "#FF0000";
@@ -21,7 +29,7 @@ $(document).ready(function() {
     return audioData;
   };
 
-  onUserDecompressedAudio = function(audioData, userId, sampleRate, bitRate) {
+  onUserDecompressedAudio = function(audioData, userId, sampleRate, bitRate, posX) {
     //Called when user audiodata coming from the client
     incctx.clearRect(0, 0, incaudio.width, incaudio.height);
     for (var i = 0; i < audioData.length; i++) {

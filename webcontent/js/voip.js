@@ -12,8 +12,10 @@ var upSampleWorker = new Worker("./js/voipWorker.js");
 
 var socketConnected = false; //is true if client is connected
 var steamBuffer = {}; //Buffers incomeing audio
+var steamPosX = {}
 
 var oscillator;
+var X_LOCATION = 0;
 
 function hasGetUserMedia() {
   return !!(
@@ -44,7 +46,8 @@ socketIO.on("connect", function(socket) {
         socketId: data["sid"],
         inSampleRate: data["s"],
         inBitRate: data["b"],
-        p: data["p"]
+        p: data["p"],
+        x: data["x"]
       });
     }
   });
@@ -73,7 +76,8 @@ downSampleWorker.addEventListener(
         a: audioData, //Audio data
         s: mySampleRate,
         b: myBitRate,
-        p: data[1]
+        p: data[1],
+        x: X_LOCATION
       });
     }
   },
@@ -91,14 +95,19 @@ upSampleWorker.addEventListener(
       soundcardSampleRate
     );
     if (typeof steamBuffer[clientId] === "undefined") {
+      steamPosX[clientId] = [];
       steamBuffer[clientId] = [];
     }
     if (steamBuffer[clientId].length > 5) steamBuffer[clientId].splice(0, 1); //If to much audio is inc for some reason... remove
-
+    steamPosX[clientId] = data[2];
     steamBuffer[clientId].push(voiceData);
   },
   false
 );
+
+function setLocation(x) {
+    X_LOCATION = x;
+}
 
 function startTalking() {
   if (hasGetUserMedia()) {
@@ -123,12 +132,13 @@ function startTalking() {
         if (!context.createScriptProcessor) {
           node = context.createJavaScriptNode(chunkSize, 1, 1);
         } else {
-          node = context.createScriptProcessor(chunkSize, 1, 1);
+          node = context.createScriptProcessor(chunkSize, 1, 2);
         }
 
         node.onaudioprocess = function(e) {
           var inData = e.inputBuffer.getChannelData(0);
-          var outData = e.outputBuffer.getChannelData(0);
+          var outDataL = e.outputBuffer.getChannelData(0);
+          var outDataR = e.outputBuffer.getChannelData(1);
 
           inData = onMicRawAudio(inData, soundcardSampleRate); //API Function to change audio data
 
@@ -152,16 +162,23 @@ function startTalking() {
           }
           if (allSilence) {
             for (var i in inData) {
-              outData[i] = 0;
+              outDataL[i] = 0;
+              outDataR[i] = 0;
             }
           } else {
             var div = false; //true if its not the first audio stream
             for (var c in steamBuffer) {
               if (steamBuffer[c].length != 0) {
                 for (var i in steamBuffer[c][0]) {
-                  if (div) outData[i] = (outData[i] + steamBuffer[c][0][i]) / 2;
+                  if (div) {
+                    outDataL[i] = (steamPosX[c] <= 0 ? 1 : 0) * (outDataL[i] + steamBuffer[c][0][i]) / 2;
+                    outDataR[i] = (steamPosX[c] >= 0 ? 1 : 0) * (outDataR[i] + steamBuffer[c][0][i]) / 2;
+                  }
                   //need to muxing audio
-                  else outData[i] = steamBuffer[c][0][i];
+                  else {
+                    outDataL[i] = (steamPosX[c] <= 0 ? 1 : 0) * steamBuffer[c][0][i];
+                    outDataR[i] = ( steamPosX[c] >= 0 ? 1 : 0 ) * steamBuffer[c][0][i];
+                  }
                 }
                 steamBuffer[c].splice(0, 1); //remove the audio after putting it in buffer
                 div = true;
